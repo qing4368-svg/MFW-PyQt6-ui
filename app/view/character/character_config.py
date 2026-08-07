@@ -30,7 +30,7 @@ from pathlib import Path
 
 
 # --- 默认角色图片路径（相对于项目根目录） ---
-DEFAULT_IMAGE_PATH = "./resource/assets/char.png"
+DEFAULT_IMAGE_PATH = "./app/assets/char.png"
 
 # --- 默认角色 Emoji（当未指定图片时使用） ---
 DEFAULT_CHARACTER_EMOJI = "🐱"
