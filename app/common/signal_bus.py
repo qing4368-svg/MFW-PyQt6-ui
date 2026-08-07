@@ -97,6 +97,11 @@ class SignalBus(QObject):
     # 请求将任务页三栏布局恢复为默认 1:1:1
     task_interface_layout_reset_requested = Signal()
 
+    # 桌面小人相关信号
+    character_mood_changed = Signal(str)  # 小人心情变化 (mood_name)
+    character_clicked = Signal()  # 小人被点击
+    character_mode_changed = Signal(str)  # 小人显示模式变化 ("window" / "float" / "none")
+
     # 开发调试：重新播放首次引导教程
     tutorial_replay_requested = Signal()
 

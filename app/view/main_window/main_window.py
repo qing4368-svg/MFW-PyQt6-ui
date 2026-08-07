@@ -70,6 +70,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
+    QFileDialog,
     QMenu,
     QWidget,
     QGraphicsOpacityEffect,
@@ -102,6 +103,7 @@ from app.view.setting_interface.setting_interface import (
 )
 from app.view.test_interface.test_interface import TestInterface
 from app.view.bundle_interface.bundle_interface import BundleInterface
+from app.view.character import CharacterConfig, CharacterController
 from app.common.config import cfg
 from app.common.constants import _CONTROLLER_
 from app.common.signal_bus import signalBus
@@ -236,6 +238,29 @@ class TutorialHighlightOverlay(QWidget):
         super().closeEvent(event)
 
 
+class _BackgroundLabel(BodyLabel):
+    """背景图层：支持右键菜单选择/恢复壁纸。
+
+    作为 MainWindow 最底层的子控件，位于所有交互控件之后（lower()），
+    因此左键点击不会拦截上层控件的交互。
+    右键点击时显示壁纸操作菜单。
+    """
+
+    def __init__(self, main_window: "MainWindow", parent=None):
+        super().__init__(parent)
+        self._main_window = main_window
+        self.setObjectName("appBackgroundLabel")
+        self.setScaledContents(True)
+
+    def mousePressEvent(self, event) -> None:
+        """右键点击显示壁纸菜单，左键透传（ignore）。"""
+        if event.button() == Qt.MouseButton.RightButton:
+            self._main_window._show_wallpaper_context_menu(event.globalPos())
+            event.accept()
+        else:
+            event.ignore()  # 左键不拦截
+
+
 @dataclass
 class TutorialStep:
     target_getter: Callable[[], QWidget | None]
@@ -290,6 +315,8 @@ class MainWindow(MSFluentWindow):
         self._shutdown_cleanup_started = False
         self._shutdown_cleanup_completed = False
         self._allow_window_close = False
+        self._character_controller: CharacterController | None = None
+        self._wallpaper_context_menu: QMenu | None = None
         
         super().__init__()
         self._loop = loop
@@ -771,6 +798,7 @@ class MainWindow(MSFluentWindow):
         self._set_initial_geometry()
         self.show()
         self._init_background_layer()
+        self._init_character_controller()
         QApplication.processEvents()
         self._schedule_mica_effect()
 
@@ -1074,12 +1102,7 @@ class MainWindow(MSFluentWindow):
         if self._background_label is not None:
             return
 
-        self._background_label = BodyLabel(self)
-        self._background_label.setObjectName("appBackgroundLabel")
-        self._background_label.setAttribute(
-            Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
-        )
-        self._background_label.setScaledContents(True)
+        self._background_label = _BackgroundLabel(self, self)
         self._background_opacity_effect = QGraphicsOpacityEffect(self._background_label)
         self._background_label.setGraphicsEffect(self._background_opacity_effect)
         self._apply_background_from_config()
@@ -1171,6 +1194,130 @@ class MainWindow(MSFluentWindow):
     def _on_background_opacity_changed(self, value: int):
         """响应设置界面的背景透明度变更。"""
         self._apply_background_opacity(value)
+
+    # ============================================================
+    #  壁纸选择 / 恢复
+    # ============================================================
+
+    def _show_wallpaper_context_menu(self, global_pos) -> None:
+        """显示壁纸右键菜单。"""
+        menu = QMenu(self)
+        menu.addAction(
+            self.tr("Select Wallpaper..."), self._select_wallpaper
+        )
+        menu.addAction(
+            self.tr("Restore Default Wallpaper"), self._restore_default_wallpaper
+        )
+        self._wallpaper_context_menu = menu
+        menu.popup(global_pos)
+
+    def _select_wallpaper(self) -> None:
+        """打开文件对话框让用户选择本地壁纸图片，并应用为主窗口背景。
+
+        支持 jpg / png / bmp 格式。选中的路径保存到配置文件，下次启动自动加载。
+        """
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Select Wallpaper Image"),
+            "",
+            self.tr("Images (*.jpg *.jpeg *.png *.bmp);;All Files (*)"),
+        )
+        if not file_path:
+            return  # 用户取消
+
+        # 保存到配置并应用
+        cfg.set(cfg.background_image_path, file_path)
+        self._load_background_pixmap(file_path)
+        signalBus.background_image_changed.emit(file_path)
+        logger.info("壁纸已更换: %s", file_path)
+
+    def _restore_default_wallpaper(self) -> None:
+        """恢复默认壁纸（清除自定义壁纸路径，回到无壁纸状态）。"""
+        # 查找默认背景文件
+        default_path = ""
+        for name in ("background.jpg", "background.png"):
+            candidate = Path(name)
+            if candidate.is_file():
+                default_path = str(candidate)
+                break
+
+        cfg.set(cfg.background_image_path, default_path)
+        if default_path:
+            self._load_background_pixmap(default_path)
+        else:
+            self._background_pixmap_original = None
+            if hasattr(self, "_background_label") and self._background_label is not None:
+                self._background_label.hide()
+        signalBus.background_image_changed.emit(default_path)
+        logger.info("壁纸已恢复默认")
+
+    # ============================================================
+    #  桌面小人 (Character)
+    # ============================================================
+
+    def _init_character_controller(self) -> None:
+        """初始化桌面小人控制器。
+
+        从持久化配置中恢复 CharacterConfig，若配置中被禁用则不显示。
+        """
+        # 从 QConfig 恢复角色配置
+        try:
+            saved_json = cfg.get(cfg.character_config_json)
+            if saved_json:
+                try:
+                    character_config = CharacterConfig.from_dict(
+                        json.loads(saved_json)
+                    )
+                except (json.JSONDecodeError, TypeError, ValueError) as exc:
+                    logger.warning("解析角色配置失败，使用默认配置: %s", exc)
+                    character_config = CharacterConfig()
+            else:
+                character_config = CharacterConfig()
+        except Exception as exc:
+            logger.warning("加载角色配置失败，使用默认配置: %s", exc)
+            character_config = CharacterConfig()
+
+        # 应用启用开关
+        if not cfg.get(cfg.character_enabled):
+            character_config.enabled = False
+
+        self._character_controller = CharacterController(self, character_config)
+
+        # 连接小人信号到全局 signalBus
+        self._character_controller.character.clicked.connect(
+            signalBus.character_clicked
+        )
+        self._character_controller.character.mood_changed.connect(
+            signalBus.character_mood_changed
+        )
+
+        if character_config.enabled:
+            self._character_controller.show_character()
+
+        logger.info(
+            "桌面小人控制器已初始化 (enabled=%s, mode=%s)",
+            character_config.enabled,
+            self._character_controller.current_mode,
+        )
+
+    @property
+    def character_controller(self) -> CharacterController | None:
+        """获取桌面小人控制器，供外部（如设置页面）操作。"""
+        return self._character_controller
+
+    def save_character_config(self) -> None:
+        """将当前小人配置持久化到 QConfig。"""
+        controller = self._character_controller
+        if controller is None:
+            return
+        try:
+            cfg.set(cfg.character_enabled, controller.config.enabled)
+            cfg.set(
+                cfg.character_config_json,
+                json.dumps(controller.config.to_dict(), ensure_ascii=False),
+            )
+        except Exception as exc:
+            logger.warning("保存角色配置失败: %s", exc)
 
     def _translate_config_error(self, message: str) -> str:
         """翻译配置错误消息
@@ -3163,6 +3310,12 @@ class MainWindow(MSFluentWindow):
 
         self._save_window_geometry_if_needed()
         self._save_last_active_page()
+
+        # 清理桌面小人控制器
+        if self._character_controller is not None:
+            self.save_character_config()
+            self._character_controller.dispose()
+            self._character_controller = None
 
         # 清理托盘图标，避免 Windows 托盘残影
         self._dispose_tray_icon()

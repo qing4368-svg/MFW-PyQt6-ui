@@ -336,6 +336,14 @@ class Config(QConfig):
     latest_update_version = ConfigItem("Update", "LatestUpdateVersion", "")
     cdk_expired_time = ConfigItem("Update", "CdkExpiredTime", -1)
 
+    # ===== 桌面小人 =====
+    character_enabled = ConfigItem(
+        "Character", "enabled", True, BoolValidator()
+    )
+    character_config_json = ConfigItem(
+        "Character", "config_json", ""
+    )  # CharacterConfig.to_dict() 序列化后的 JSON 字符串
+
     # dev
     enable_test_interface_page = ConfigItem(
         "Dev", "enable_test_interface_page", False, BoolValidator()
