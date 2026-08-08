@@ -1290,6 +1290,14 @@ class MainWindow(MSFluentWindow):
         self._character_controller.character.mood_changed.connect(
             signalBus.character_mood_changed
         )
+        # 悬浮窗"返回首页"按钮 → 导航到 Dashboard
+        self._character_controller.set_on_go_home(
+            lambda: self._switch_to_interface(self.DashboardInterface)
+        )
+        # 监听设置页的桌面小人开关变化
+        cfg.character_enabled.valueChanged.connect(
+            self._on_character_enabled_changed
+        )
 
         if character_config.enabled:
             self._character_controller.show_character()
@@ -1304,6 +1312,11 @@ class MainWindow(MSFluentWindow):
     def character_controller(self) -> CharacterController | None:
         """获取桌面小人控制器，供外部（如设置页面）操作。"""
         return self._character_controller
+
+    def _on_character_enabled_changed(self, enabled: bool) -> None:
+        """响应设置页桌面小人开关。"""
+        if self._character_controller is not None:
+            self._character_controller.set_enabled(bool(enabled))
 
     def save_character_config(self) -> None:
         """将当前小人配置持久化到 QConfig。"""

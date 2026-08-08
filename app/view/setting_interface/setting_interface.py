@@ -1062,6 +1062,20 @@ class SettingInterface(QWidget):
         self.personalGroup.addSettingCard(self.background_image_card)
         self.personalGroup.addSettingCard(self.home_cover_image_card)
         self.personalGroup.addSettingCard(self.background_opacity_card)
+
+        # --- 桌面小人开关 ---
+        self.character_enabled_card = SwitchSettingCard(
+            FIF.EMOJI_TAB_SYMBOLS,
+            self.tr("Desktop Mascot"),
+            self.tr(
+                "Show an interactive character in the main window, "
+                "and display it as a floating button on the desktop when minimized"
+            ),
+            configItem=cfg.character_enabled,
+            parent=self.personalGroup,
+        )
+
+        self.personalGroup.addSettingCard(self.character_enabled_card)
         self.personalGroup.addSettingCard(self.zoomCard)
         self.personalGroup.addSettingCard(self.languageCard)
         self.personalGroup.addSettingCard(self.remember_geometry_card)

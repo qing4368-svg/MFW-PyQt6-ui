@@ -84,7 +84,14 @@ def isWin11():
 
 
 def _detect_default_background_image() -> str:
-    """查找默认背景图，依次尝试 ./background.jpg 与 ./background.png。"""
+    """查找默认背景图，依次尝试 ./app/assets/backgrounds/ 下的文件、根目录下的 background.jpg/png。"""
+    # 优先使用项目的内置壁纸
+    bg_dir = Path("app/assets/backgrounds")
+    if bg_dir.is_dir():
+        for name in sorted(bg_dir.iterdir()):
+            if name.suffix.lower() in (".jpg", ".jpeg", ".png", ".bmp"):
+                return str(name)
+    # 回退到根目录的 background.*
     for name in ("background.jpg", "background.png"):
         candidate = Path(name)
         if candidate.is_file():
@@ -338,7 +345,7 @@ class Config(QConfig):
 
     # ===== 桌面小人 =====
     character_enabled = ConfigItem(
-        "Character", "enabled", True, BoolValidator()
+        "Character", "enabled", False, BoolValidator()
     )
     character_config_json = ConfigItem(
         "Character", "config_json", ""
