@@ -270,9 +270,12 @@ jobs:
             README.md=MFW_README.md
             README-en.md=MFW_README-en.md
             LICENSE=MFW_LICENSE
+            app/assets/char.png=app/assets/char.png
           include-data-dir: |
             app/i18n=app/i18n
             app/assets/icons=app/assets/icons
+            app/assets/backgrounds=app/assets/backgrounds
+            app/assets/sounds=app/assets/sounds
 
       - name: Qt GUI with PySide6 (Linux)
         if: matrix.platform == 'linux'
@@ -302,9 +305,12 @@ jobs:
             README-en.md=MFW_README-en.md
             LICENSE=MFW_LICENSE
             AUTHORS.md=MFW_AUTHORS.md
+            app/assets/char.png=app/assets/char.png
           include-data-dir: |
             app/i18n=app/i18n
             app/assets/icons=app/assets/icons
+            app/assets/backgrounds=app/assets/backgrounds
+            app/assets/sounds=app/assets/sounds
 
       - name: updater build (Windows)
         if: matrix.platform == 'win'

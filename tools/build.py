@@ -237,6 +237,25 @@ for qm_file in [
             os.path.join(os.getcwd(), "dist", "MFW", "app", "i18n", qm_file),
         )
 
+# 复制 app/assets 资源（图标、背景、音效、人物图片）
+_dist_assets = os.path.join(os.getcwd(), "dist", "MFW", "app", "assets")
+_shutil_copytree = getattr(shutil, "copytree", None)
+if os.path.isdir(os.path.join(os.getcwd(), "app", "assets")):
+    if _shutil_copytree:
+        _shutil_copytree(
+            os.path.join(os.getcwd(), "app", "assets"),
+            _dist_assets,
+            dirs_exist_ok=True,
+        )
+    else:
+        # 旧版 shutil 无 dirs_exist_ok，先删再拷
+        if os.path.isdir(_dist_assets):
+            shutil.rmtree(_dist_assets)
+        shutil.copytree(
+            os.path.join(os.getcwd(), "app", "assets"),
+            _dist_assets,
+        )
+
 # === 构建updater ===
 updater_command = [
     "updater.py",

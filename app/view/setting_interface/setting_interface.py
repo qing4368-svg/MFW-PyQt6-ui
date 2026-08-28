@@ -1066,11 +1066,8 @@ class SettingInterface(QWidget):
         # --- 桌面小人开关 ---
         self.character_enabled_card = SwitchSettingCard(
             FIF.EMOJI_TAB_SYMBOLS,
-            self.tr("Desktop Mascot"),
-            self.tr(
-                "Show an interactive character in the main window, "
-                "and display it as a floating button on the desktop when minimized"
-            ),
+            self.tr("桌面小人"),
+            self.tr("在主窗口显示互动小人，最小化时悬浮在桌面，点击返回首页"),
             configItem=cfg.character_enabled,
             parent=self.personalGroup,
         )

@@ -464,7 +464,6 @@ k.ey
 MFW.pid
 i18n.json
 .nicegui/storage-general.json
-interface.json
 ./interface_zh.json
 ./interface_en.json
 ./resource/*
