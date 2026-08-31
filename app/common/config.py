@@ -351,6 +351,20 @@ class Config(QConfig):
         "Character", "config_json", ""
     )  # CharacterConfig.to_dict() 序列化后的 JSON 字符串
 
+    # ===== 桌面悬浮小人（独立设计） =====
+    desktop_character_bubble = ConfigItem(
+        "Character", "desktop_bubble", True, BoolValidator()
+    )  # 是否弹出文字框（初始开）
+    desktop_character_volume = RangeConfigItem(
+        "Character", "desktop_volume", 50, RangeValidator(0, 100)
+    )  # 音量（0~100）
+    desktop_character_opacity = RangeConfigItem(
+        "Character", "desktop_opacity", 100, RangeValidator(30, 100)
+    )  # 透明度（30~100）
+    desktop_character_draggable = ConfigItem(
+        "Character", "desktop_draggable", True, BoolValidator()
+    )  # 是否可拖动（初始开）
+
     # dev
     enable_test_interface_page = ConfigItem(
         "Dev", "enable_test_interface_page", False, BoolValidator()

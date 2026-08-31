@@ -276,6 +276,7 @@ jobs:
             app/assets/icons=app/assets/icons
             app/assets/backgrounds=app/assets/backgrounds
             app/assets/sounds=app/assets/sounds
+            app/assets/Desktop_png=app/assets/Desktop_png
 
       - name: Qt GUI with PySide6 (Linux)
         if: matrix.platform == 'linux'
@@ -311,6 +312,7 @@ jobs:
             app/assets/icons=app/assets/icons
             app/assets/backgrounds=app/assets/backgrounds
             app/assets/sounds=app/assets/sounds
+            app/assets/Desktop_png=app/assets/Desktop_png
 
       - name: updater build (Windows)
         if: matrix.platform == 'win'

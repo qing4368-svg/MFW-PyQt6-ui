@@ -29,9 +29,11 @@ MFW-ChainFlow Assistant
 from app.view.character.character_config import CharacterConfig
 from app.view.character.character_widget import CharacterWidget
 from app.view.character.character_controller import CharacterController
+from app.view.character.desktop_character import DesktopCharacter
 
 __all__ = [
     "CharacterConfig",
     "CharacterWidget",
     "CharacterController",
+    "DesktopCharacter",
 ]

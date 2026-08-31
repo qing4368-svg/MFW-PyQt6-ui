@@ -317,6 +317,7 @@ class MainWindow(MSFluentWindow):
         self._allow_window_close = False
         self._character_controller: CharacterController | None = None
         self._wallpaper_context_menu: QMenu | None = None
+        self._current_task_name: str = ""  # 当前运行任务名（供桌面小人气泡显示）
         
         super().__init__()
         self._loop = loop
@@ -1290,10 +1291,12 @@ class MainWindow(MSFluentWindow):
         self._character_controller.character.mood_changed.connect(
             signalBus.character_mood_changed
         )
-        # 悬浮窗"返回首页"按钮 → 导航到 Dashboard
+        # 悬浮小人"返回首页" → 导航到 Dashboard
         self._character_controller.set_on_go_home(
             lambda: self._switch_to_interface(self.DashboardInterface)
         )
+        # 桌面小人气泡：获取当前任务名
+        self._character_controller.set_get_task_name(self._get_current_task_name)
         # 监听设置页的桌面小人开关变化
         cfg.character_enabled.valueChanged.connect(
             self._on_character_enabled_changed
@@ -1317,6 +1320,23 @@ class MainWindow(MSFluentWindow):
         """响应设置页桌面小人开关。"""
         if self._character_controller is not None:
             self._character_controller.set_enabled(bool(enabled))
+
+    def _get_current_task_name(self) -> str | None:
+        """返回当前运行的任务名，供桌面小人气泡显示。"""
+        return self._current_task_name or None
+
+    def _on_task_status_changed(self, task_id: str, status: str) -> None:
+        """跟踪任务状态，更新当前运行任务名。"""
+        if status == "running":
+            try:
+                task = self.service_coordinator.task.get_task(task_id)
+                self._current_task_name = task.name if task else ""
+            except Exception:
+                self._current_task_name = ""
+        elif status in ("completed", "failed", "skipped", ""):
+            # 任务结束/清空，但不一定整个任务流结束；保守起见仅在空状态清除
+            if status == "":
+                self._current_task_name = ""
 
     def save_character_config(self) -> None:
         """将当前小人配置持久化到 QConfig。"""
@@ -1418,6 +1438,7 @@ class MainWindow(MSFluentWindow):
         signalBus.focus_dialog.connect(self._on_focus_dialog)
         signalBus.focus_modal.connect(self._on_focus_modal)
         signalBus.task_flow_finished.connect(self._on_task_flow_finished)
+        signalBus.task_status_changed.connect(self._on_task_status_changed)
         signalBus.monitor_page_requested.connect(self._on_monitor_page_requested)
         signalBus.controller_setup_hint_requested.connect(
             self._on_controller_setup_hint_requested
@@ -1523,6 +1544,7 @@ class MainWindow(MSFluentWindow):
 
     def _on_task_flow_finished(self, _payload: dict) -> None:
         self._task_page_auto_switch_handled = False
+        self._current_task_name = ""  # 任务流结束，清除当前任务名
 
     def _on_multi_resource_adaptation_enabled(self) -> None:
         """响应设置页开启多资源适配的信号，将 BundleInterface 添加到导航栏。"""
